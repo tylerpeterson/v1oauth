@@ -1,0 +1,31 @@
+{
+  "name": "v1oauth",
+  "version": "0.0.0",
+  "description": "Helper library for implementing the VersionOne OAuth flow. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tylerpeterson/v1oauth.git"
+  },
+  "keywords": [
+    "oauth",
+    "versionone"
+  ],
+  "author": "Tyler Peterson <PetersonTB@FamilySearch.org>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tylerpeterson/v1oauth/issues"
+  },
+  "homepage": "https://github.com/tylerpeterson/v1oauth",
+  "dependencies": {
+    "debug": "~0.8.1",
+    "superagent": "~0.17.0",
+    "express": "~4.1.1",
+    "chai": "~1.9.1",
+    "zombie": "~2.0.0-alpha31",
+    "q": "~1.0.1"
+  }
+}
