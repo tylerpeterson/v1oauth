@@ -101,4 +101,7 @@ AuthApp.prototype.url = function () {
   return this.appBaseUrl + "/start"; // TODO allow config
 };
 
-module.exports = AuthApp;
+module.exports = {
+  app: AuthApp,
+  restrict: function (){} // TODO create a middleware for redirecting to and from the flow when the refresh token is needed
+};

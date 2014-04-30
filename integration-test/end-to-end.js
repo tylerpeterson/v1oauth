@@ -1,5 +1,5 @@
 var express = require('express');
-var AuthApp = require('../index.js');
+var AuthApp = require('../index.js').app;
 var secrets = require('../client_secrets');
 var http = require('http');
 var debug = require('debug')('v1oauth');
