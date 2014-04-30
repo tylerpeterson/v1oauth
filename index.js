@@ -8,11 +8,12 @@ var fs = require('fs');
 var path = require('path');
 var util = require('util');
 var events = require('events');
+var express = require('express');
 
 function AuthApp(secrets, options) {
   events.EventEmitter.call(this);
   var rootThis = this;
-  var app = options.app;
+  var app = this.router = express.Router();
 
   this.clientId = secrets.web.client_id;
   this.clientSecret = secrets.web.client_secret;

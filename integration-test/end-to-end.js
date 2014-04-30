@@ -13,7 +13,8 @@ describe('ManualAuthApp', function () {
 
   beforeEach(function () {
     app = express();
-    auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088", app: app});
+    auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088"});
+    app.use(auth.router);
   });
 
   it('should issue a request', function (done) {
