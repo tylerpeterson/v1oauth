@@ -45,10 +45,17 @@ describe('ManualAuthApp', function () {
               debug('on authorization page');
               return browser.pressButton('Allow').then(function () {
                 debug('on final page');
+
                 var refreshCookie = browser.getCookie('v1refreshToken', true);
+                var accessCookie = browser.getCookie('v1accessToken', true);
+
                 expect(refreshCookie).to.have.property('value').that.is.a('string', 'the refresh cookie value');
                 expect(refreshCookie).to.have.property('expires').that.is.closeTo(Date.now() + 14 * ONE_DAY_MILLIS, 2000, 'the refresh cookie expiration date two weeks from now');
                 expect(refreshCookie).to.have.property('secure').that.equals(true, 'the refresh cookie secure flag');
+
+                expect(accessCookie).to.have.property('value').that.is.a('string', 'the access token cookie value');
+                expect(accessCookie).to.have.property('expires').that.is.closeTo(Date.now() + 600 * 1000, 2000, 'the access token cookie expiration date ten minutes from now');
+                expect(accessCookie).to.have.property('secure').that.equals(true, 'the access token cookie secure flag');
               });
             });
       }),

@@ -43,11 +43,13 @@ function AuthApp(secrets, options) {
       debug('redeeming code for refreshToken');
       tokenPromise = rootThis.hitTokenUri({code: req.param('code')});
       tokenPromise.then(function fulfilled(tokensJson) {
-        debug('got tokens!');
-        // TODO instead of emiting an event set cookies:
+        debug('got tokens!', tokensJson);
+
         // The refresh token can't be used to gain access without the client secret. Set it in a cookie that doesn't expire.
         pageRes.cookie('v1refreshToken', tokensJson.refresh_token, {maxAge: TWO_WEEKS_IN_MILLIS, secure: true});
-        // TODO The access token lets anyone masquerade as the user, but expires in five minutes. Set it in a cookie that expires appropriately.
+        // The access token lets anyone masquerade as the user, but expires in ten minutes. Set it in a cookie that expires appropriately.
+        pageRes.cookie('v1accessToken', tokensJson.access_token, {maxAge: tokensJson.expires_in * 1000, secure: true});
+
         // TODO create an endpoint for deleting the access token cookie. Leave the refresh token cookie.
         // TODO consider how a command-line tool will use the library. Perhaps will still need to emit events for that use-case.
         rootThis.emit('refreshToken', tokensJson);
