@@ -16,13 +16,15 @@ function AuthApp(secrets, options) {
   var rootThis = this;
   var app = this.router = express.Router();
 
+  secrets = secrets || {web:{}};
+  options = options || {};
+
   this.clientId = secrets.web.client_id;
   this.clientSecret = secrets.web.client_secret;
   this.authUri = secrets.web.auth_uri;
   this.tokenUri = secrets.web.token_uri;
-  this.appBaseUrl = options.appBaseUrl;
+  this.appBaseUrl(options.appBaseUrl);
   this.cacheDirectory = options.cacheDirectory || process.cwd();
-  this.appReturnUrl = this.appBaseUrl + "/auth/versionone/callback";
 
   app.get('/start', function (req, res) {
     var authUri = rootThis.authUri +
@@ -106,8 +108,16 @@ AuthApp.prototype.hitTokenUri = function (params) {
   return dfd.promise;
 };
 
+AuthApp.prototype.appBaseUrl = function(appBaseUrl) {
+  if (typeof appBaseUrl === 'string') {
+    this._appBaseUrl = appBaseUrl;
+    this.appReturnUrl = this._appBaseUrl + "/auth/versionone/callback";
+  }
+  return this._appBaseUrl;
+};
+
 AuthApp.prototype.url = function () {
-  return this.appBaseUrl + "/start"; // TODO allow config
+  return this._appBaseUrl + "/start"; // TODO allow config
 };
 
 module.exports = {

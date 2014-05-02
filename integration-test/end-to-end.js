@@ -1,5 +1,5 @@
 var express = require('express');
-var AuthApp = require('../index.js').app;
+var AuthApp = require('../index').app;
 var secrets = require('../client_secrets');
 var http = require('http');
 var debug = require('debug')('v1oauth');
@@ -14,6 +14,7 @@ describe('ManualAuthApp', function () {
   var auth;
   var app;
   var server;
+  var port;
 
   beforeEach(function () {
     app = express();
@@ -21,6 +22,8 @@ describe('ManualAuthApp', function () {
     app.use(auth.router);
     server = http.createServer(app);
     server.listen(8088);
+    port = server.address().port;
+    debug('on port %d', port);
   });
 
   afterEach(function () {
