@@ -9,7 +9,7 @@ describe('AuthApp', function () {
     expect(app.appBaseUrl()).to.equal('a/test/value');
   });
   it('should accept baseurl config after construction', function () {
-    var app = new App(null, null);
+    var app = new App();
     app.appBaseUrl('another/test/value');
     expect(app.appBaseUrl()).to.equal('another/test/value');
   });
