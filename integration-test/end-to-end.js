@@ -13,21 +13,26 @@ var ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
 describe('ManualAuthApp', function () {
   var auth;
   var app;
+  var server;
 
   beforeEach(function () {
     app = express();
     auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088"});
     app.use(auth.router);
+    server = http.createServer(app);
+    server.listen(8088);
+  });
+
+  afterEach(function () {
+    server.close();
   });
 
   it('should issue a request', function () {
     this.timeout(5000);
 
-    var server = http.createServer(app);
     var url = auth.url();
     var tokensDfd = Q.defer();
 
-    server.listen(8088);
     auth.on('refreshToken', function (tokens) {
       tokensDfd.resolve(tokens);
     });
