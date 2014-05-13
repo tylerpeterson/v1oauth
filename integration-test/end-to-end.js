@@ -1,3 +1,5 @@
+/*jslint node: true, expr:true*/
+
 var express = require('express');
 var AuthApp = require('../index').app;
 var secrets = require('../client_secrets');
@@ -15,10 +17,21 @@ describe('ManualAuthApp', function () {
   var app;
   var server;
   var port;
+  var refreshToken;
+  var accessToken;
+  var browser;
+
+  before(function () {
+    browser = new Browser();
+  });
 
   beforeEach(function () {
     app = express();
     auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088"});
+    app.get("/index", auth.restrict, function (req, res) {
+      debug('get /index');
+      res.send('<?html?><html><head><title>Test</title></head></html>');
+    });
     app.use(auth.router);
     server = http.createServer(app);
     server.listen(8088);
@@ -42,7 +55,6 @@ describe('ManualAuthApp', function () {
 
     debug("opening web page", url);
 
-    var browser = new Browser();
     return Q.all([
       browser.visit(url).then(function () {
         debug('loaded login page');
@@ -55,15 +67,13 @@ describe('ManualAuthApp', function () {
                 debug('on final page');
 
                 var refreshCookie = browser.getCookie('v1refreshToken', true);
-                var accessCookie = browser.getCookie('v1accessToken', true);
 
                 expect(refreshCookie).to.have.property('value').that.is.a('string', 'the refresh cookie value');
                 expect(refreshCookie).to.have.property('expires').that.is.closeTo(Date.now() + 14 * ONE_DAY_MILLIS, 2000, 'the refresh cookie expiration date two weeks from now');
                 expect(refreshCookie).to.have.property('secure').that.equals(true, 'the refresh cookie secure flag');
+                refreshToken = refreshCookie.value; // Save for subsequent tests.  Hokey.
 
-                expect(accessCookie).to.have.property('value').that.is.a('string', 'the access token cookie value');
-                expect(accessCookie).to.have.property('expires').that.is.closeTo(Date.now() + 600 * 1000, 2000, 'the access token cookie expiration date ten minutes from now');
-                expect(accessCookie).to.have.property('secure').that.equals(true, 'the access token cookie secure flag');
+                verifyAccessCookie();
               });
             });
       }),
@@ -75,6 +85,29 @@ describe('ManualAuthApp', function () {
       })
     ]);
   });
+
   // TODO add another test that uses refresh token to gain new access token
+  it('should get new access token using refresh token', function () {
+    this.timeout(5000);
+    var url = "http://localhost:8088/index";
+
+    browser.deleteCookie('v1accessToken');
+
+    return browser.visit(url).then(function () {
+      debug('verifying served page.');
+      verifyAccessCookie();
+    });
+  });
+
   // TODO add another instance verifying what happens when the user denys the token
+
+  function verifyAccessCookie() {
+    var accessCookie = browser.getCookie('v1accessToken', true);
+    
+    expect(accessCookie, 'v1accessToken cookie').to.be.not.null;
+    expect(accessCookie).to.have.property('value').that.is.a('string', 'the access token cookie value');
+    expect(accessCookie).to.have.property('expires').that.is.closeTo(Date.now() + 600 * 1000, 2000, 'the access token cookie expiration date ten minutes from now');
+    expect(accessCookie).to.have.property('secure').that.equals(true, 'the access token cookie secure flag');
+    accessToken = accessCookie.value;    
+  }
 });

@@ -10,6 +10,7 @@ var util = require('util');
 var events = require('events');
 var express = require('express');
 var TWO_WEEKS_IN_MILLIS = 14 * 24 * 60 * 60 * 1000;
+var cookieParser = require('cookie-parser');
 
 function AuthApp(secrets, options) {
   events.EventEmitter.call(this);
@@ -25,6 +26,8 @@ function AuthApp(secrets, options) {
   this.tokenUri = secrets.web.token_uri;
   this.appBaseUrl(options.appBaseUrl);
   this.cacheDirectory = options.cacheDirectory || process.cwd();
+
+  this.restrict = this.restrict.bind(this);
 
   app.get('/start', function (req, res) {
     var authUri = rootThis.authUri +
@@ -45,12 +48,7 @@ function AuthApp(secrets, options) {
       debug('redeeming code for refreshToken');
       tokenPromise = rootThis.hitTokenUri({code: req.param('code')});
       tokenPromise.then(function fulfilled(tokensJson) {
-        debug('got tokens!', tokensJson);
-
-        // The refresh token can't be used to gain access without the client secret. Set it in a cookie that doesn't expire.
-        pageRes.cookie('v1refreshToken', tokensJson.refresh_token, {maxAge: TWO_WEEKS_IN_MILLIS, secure: true});
-        // The access token lets anyone masquerade as the user, but expires in ten minutes. Set it in a cookie that expires appropriately.
-        pageRes.cookie('v1accessToken', tokensJson.access_token, {maxAge: tokensJson.expires_in * 1000, secure: true});
+        handleTokensBody(tokensJson, pageRes);
 
         // TODO create an endpoint for deleting the access token cookie. Leave the refresh token cookie.
         // TODO consider how a command-line tool will use the library. Perhaps will still need to emit events for that use-case.
@@ -68,6 +66,15 @@ function AuthApp(secrets, options) {
       res.end();
     }
   });
+}
+
+function handleTokensBody(tokensJson, pageRes) {
+  debug('got tokens!', tokensJson);
+
+  // The refresh token can't be used to gain access without the client secret. Set it in a cookie that doesn't expire.
+  pageRes.cookie('v1refreshToken', tokensJson.refresh_token, {maxAge: TWO_WEEKS_IN_MILLIS, secure: true});
+  // The access token lets anyone masquerade as the user, but expires in ten minutes. Set it in a cookie that expires appropriately.
+  pageRes.cookie('v1accessToken', tokensJson.access_token, {maxAge: tokensJson.expires_in * 1000, secure: true});
 }
 
 util.inherits(AuthApp, events.EventEmitter);
@@ -120,7 +127,35 @@ AuthApp.prototype.url = function () {
   return this._appBaseUrl + "/start"; // TODO allow config
 };
 
+AuthApp.prototype.restrict = function(req, res, next) {
+  debug('AuthApp.restrict');
+  var self = this;
+
+  function finish() {
+    debug('cookies parsed', req.cookies);
+    if (req.cookies.v1accessToken) {
+      debug('already have v1accessToken. Proceed.');
+      return next();
+    }
+    if (req.cookies.v1refreshToken) {
+      debug('missing v1accessToken. Have v1refreshToken. Attempt refresh.');
+      return self.hitTokenUri({refreshToken: req.cookies.v1refreshToken}).then(function (tokensJson) {
+        handleTokensBody(tokensJson, res);
+        next();
+      });
+    }
+    debug('no v1oauth cookies. Redirect to oauth flow.');
+    // TODO redirect.
+    next();
+  }
+
+  if (req.cookies) {
+    finish();
+  } else {
+    cookieParser()(req, res, finish);
+  }
+};
+
 module.exports = {
-  app: AuthApp,
-  restrict: function (){} // TODO create a middleware for redirecting to and from the flow when the refresh token is needed
+  app: AuthApp
 };
