@@ -30,20 +30,16 @@ function AuthApp(secrets, options) {
   this.restrict = this.restrict.bind(this);
 
   app.get('/start', function (req, res) {
-    var authUri = rootThis.authUri +
-      '?response_type=code' +
-      '&client_id=' + rootThis.clientId +
-      '&redirect_uri=' + rootThis.appReturnUrl +
-      '&scope=ap1v1 query-api-1.0' +
-      '&state=foobaz'; // TODO send more helpful state
-    debug('/start redirecting to %s', authUri);
-    res.redirect(authUri);
+    debug('/start redirecting to v1oauth flow');
+    rootThis.redirectToV1Auth(null, res);
   });
 
   app.get('/auth/versionone/callback', function (req, res) {
     debug('serving /auth/versionone/callback with code %s', req.param('code'));
     var pageRes = res;
     var tokenPromise;
+    var state = req.param('state');
+    var returnUrl = decodeURIComponent(state);
     if (req.param('code')) {
       debug('redeeming code for refreshToken');
       tokenPromise = rootThis.hitTokenUri({code: req.param('code')});
@@ -53,7 +49,11 @@ function AuthApp(secrets, options) {
         // TODO create an endpoint for deleting the access token cookie. Leave the refresh token cookie.
         // TODO consider how a command-line tool will use the library. Perhaps will still need to emit events for that use-case.
         rootThis.emit('refreshToken', tokensJson);
-        pageRes.send('got token'); // TODO call next as middleware instead
+        if (state && returnUrl) {
+          debug('code redeemed. Flow complete. Redirecting to %s', returnUrl);
+          return pageRes.redirect(returnUrl);
+        }
+        pageRes.send('<?html?><html><head><title>got token</title></head></html>'); // TODO call next as middleware instead
         pageRes.end();
       }, function rejected(errMessage) {
         // TODO emit an error event
@@ -127,6 +127,24 @@ AuthApp.prototype.url = function () {
   return this._appBaseUrl + "/start"; // TODO allow config
 };
 
+AuthApp.prototype.redirectToV1Auth = function(req, res) {  
+  var state = '';
+  var authUri;
+
+  if (req) {
+    state = encodeURIComponent(req.originalUrl);
+  }
+
+  authUri = this.authUri +
+    '?response_type=code' +
+    '&client_id=' + this.clientId +
+    '&redirect_uri=' + this.appReturnUrl +
+    '&scope=ap1v1 query-api-1.0' +
+    (state ? '&state=' + state : '');
+  debug('redirecting to %s', authUri);
+  res.redirect(authUri);
+};
+
 AuthApp.prototype.restrict = function(req, res, next) {
   debug('AuthApp.restrict');
   var self = this;
@@ -145,8 +163,7 @@ AuthApp.prototype.restrict = function(req, res, next) {
       });
     }
     debug('no v1oauth cookies. Redirect to oauth flow.');
-    // TODO redirect.
-    next();
+    self.redirectToV1Auth(req, res);
   }
 
   if (req.cookies) {

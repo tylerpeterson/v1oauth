@@ -30,7 +30,7 @@ describe('ManualAuthApp', function () {
     auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088"});
     app.get("/index", auth.restrict, function (req, res) {
       debug('get /index');
-      res.send('<?html?><html><head><title>Test</title></head></html>');
+      res.send('<?html?><html><head><title>index page</title></head></html>');
     });
     app.use(auth.router);
     server = http.createServer(app);
@@ -56,27 +56,7 @@ describe('ManualAuthApp', function () {
     debug("opening web page", url);
 
     return Q.all([
-      browser.visit(url).then(function () {
-        debug('loaded login page');
-        return browser
-            .fill('username', creds.username)
-            .fill('password', creds.password)
-            .pressButton('Login').then(function () {
-              debug('on authorization page');
-              return browser.pressButton('Allow').then(function () {
-                debug('on final page');
-
-                var refreshCookie = browser.getCookie('v1refreshToken', true);
-
-                expect(refreshCookie).to.have.property('value').that.is.a('string', 'the refresh cookie value');
-                expect(refreshCookie).to.have.property('expires').that.is.closeTo(Date.now() + 14 * ONE_DAY_MILLIS, 2000, 'the refresh cookie expiration date two weeks from now');
-                expect(refreshCookie).to.have.property('secure').that.equals(true, 'the refresh cookie secure flag');
-                refreshToken = refreshCookie.value; // Save for subsequent tests.  Hokey.
-
-                verifyAccessCookie();
-              });
-            });
-      }),
+      logInFlow(url),
       tokensDfd.promise.then(function (tokens) {
         expect(tokens).to.have.property('access_token').that.is.a('string', 'the emitted access token');
         expect(tokens).to.have.property('refresh_token').that.is.a('string', 'the emitted refresh token');
@@ -99,6 +79,41 @@ describe('ManualAuthApp', function () {
   });
 
   // TODO add another instance verifying what happens when the user denys the token
+  it('should redirect to flow and back when no cookies set', function () {
+    this.timeout(5000);
+    var url = "http://localhost:8088/index";
+
+    browser.deleteCookies();
+
+    return logInFlow(url).then(function () {
+      debug('done with flow.');
+      expect(browser.text('title')).to.equal('index page');
+    });
+  });
+
+  function logInFlow(url) {
+    return browser.visit(url).then(function () {
+      debug('loaded login page');
+      return browser
+          .fill('username', creds.username)
+          .fill('password', creds.password)
+          .pressButton('Login').then(function () {
+            debug('on authorization page');
+            return browser.pressButton('Allow').then(function () {
+              debug('on final page');
+
+              var refreshCookie = browser.getCookie('v1refreshToken', true);
+
+              expect(refreshCookie).to.have.property('value').that.is.a('string', 'the refresh cookie value');
+              expect(refreshCookie).to.have.property('expires').that.is.closeTo(Date.now() + 14 * ONE_DAY_MILLIS, 2000, 'the refresh cookie expiration date two weeks from now');
+              expect(refreshCookie).to.have.property('secure').that.equals(true, 'the refresh cookie secure flag');
+              refreshToken = refreshCookie.value; // Save for subsequent tests.  Hokey.
+
+              verifyAccessCookie();
+            });
+          });
+    });
+  }
 
   function verifyAccessCookie() {
     var accessCookie = browser.getCookie('v1accessToken', true);
