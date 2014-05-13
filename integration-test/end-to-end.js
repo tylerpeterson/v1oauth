@@ -86,7 +86,6 @@ describe('ManualAuthApp', function () {
     ]);
   });
 
-  // TODO add another test that uses refresh token to gain new access token
   it('should get new access token using refresh token', function () {
     this.timeout(5000);
     var url = "http://localhost:8088/index";
