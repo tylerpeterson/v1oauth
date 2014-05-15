@@ -26,6 +26,7 @@ function AuthApp(secrets, options) {
   this.tokenUri = secrets.web.token_uri;
   this.appBaseUrl(options.appBaseUrl);
   this.cacheDirectory = options.cacheDirectory || process.cwd();
+  this.secureCookies = options.secureCookies !== undefined ? options.secureCookies : true;
 
   this.restrict = this.restrict.bind(this);
 
@@ -44,7 +45,7 @@ function AuthApp(secrets, options) {
       debug('redeeming code for refreshToken');
       tokenPromise = rootThis.hitTokenUri({code: req.param('code')});
       tokenPromise.then(function fulfilled(tokensJson) {
-        handleTokensBody(tokensJson, pageRes);
+        rootThis.handleTokensBody(tokensJson, pageRes);
 
         // TODO create an endpoint for deleting the access token cookie. Leave the refresh token cookie.
         // TODO consider how a command-line tool will use the library. Perhaps will still need to emit events for that use-case.
@@ -68,16 +69,16 @@ function AuthApp(secrets, options) {
   });
 }
 
-function handleTokensBody(tokensJson, pageRes) {
+util.inherits(AuthApp, events.EventEmitter);
+
+AuthApp.prototype.handleTokensBody = function (tokensJson, pageRes) {
   debug('got tokens!', tokensJson);
 
   // The refresh token can't be used to gain access without the client secret. Set it in a cookie that doesn't expire.
-  pageRes.cookie('v1refreshToken', tokensJson.refresh_token, {maxAge: TWO_WEEKS_IN_MILLIS, secure: true});
+  pageRes.cookie('v1refreshToken', tokensJson.refresh_token, {maxAge: TWO_WEEKS_IN_MILLIS, secure: this.secureCookies});
   // The access token lets anyone masquerade as the user, but expires in ten minutes. Set it in a cookie that expires appropriately.
-  pageRes.cookie('v1accessToken', tokensJson.access_token, {maxAge: tokensJson.expires_in * 1000, secure: true});
-}
-
-util.inherits(AuthApp, events.EventEmitter);
+  pageRes.cookie('v1accessToken', tokensJson.access_token, {maxAge: tokensJson.expires_in * 1000, secure: this.secureCookies});
+};
 
 /** Resolve an authorization code OR a refresh token into an access token.
  * Must be called with either
@@ -158,7 +159,7 @@ AuthApp.prototype.restrict = function(req, res, next) {
     if (req.cookies.v1refreshToken) {
       debug('missing v1accessToken. Have v1refreshToken. Attempt refresh.');
       return self.hitTokenUri({refreshToken: req.cookies.v1refreshToken}).then(function (tokensJson) {
-        handleTokensBody(tokensJson, res);
+        self.handleTokensBody(tokensJson, res);
         next();
       });
     }
