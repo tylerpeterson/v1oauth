@@ -28,5 +28,8 @@
     "zombie": "~2.0.0-alpha31",
     "q": "~1.0.1",
     "cookie-parser": "~1.1.0"
+  },
+  "devDependencies": {
+    "body-parser": "~1.2.0"
   }
 }
