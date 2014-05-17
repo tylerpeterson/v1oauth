@@ -160,6 +160,7 @@ AuthApp.prototype.restrict = function(req, res, next) {
       debug('missing v1accessToken. Have v1refreshToken. Attempt refresh.');
       return self.hitTokenUri({refreshToken: req.cookies.v1refreshToken}).then(function (tokensJson) {
         self.handleTokensBody(tokensJson, res);
+        // TODO make sure tokens are available on THIS request and not just set cookies for next request.
         next();
       });
     }
