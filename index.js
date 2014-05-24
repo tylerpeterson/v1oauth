@@ -11,6 +11,7 @@ var events = require('events');
 var express = require('express');
 var TWO_WEEKS_IN_MILLIS = 14 * 24 * 60 * 60 * 1000;
 var cookieParser = require('cookie-parser');
+var exec = require('child_process').exec;
 
 function AuthApp(secrets, options) {
   events.EventEmitter.call(this);
@@ -177,7 +178,33 @@ AuthApp.prototype.restrict = function(req, res, next) {
 
 module.exports = {
   app: AuthApp, // For web apps to use
-  authService: function () { // for command line tools to use
+  authService: function (secrets) { // for command line tools to use
+    function serviceInstance() {
+      var app = express();
+      var auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088", secureCookies: false});
+      var dfd = Q.defer();
+      var serverBaseUri = secrets.web.server_base_uri;
+      var url = auth.url();
 
+      app.use(auth.router);
+      app.listen(8088);
+
+      auth.once('refreshToken', function (tokens) {
+        debug('caught emitted tokens');
+        dfd.resolve(tokens);
+      });
+
+      var browserProcess = exec('open ' + url, function (error, stdout, stderr) {
+        if (error !== null) {
+          debug('error', error);
+        }
+      });
+
+      return dfd.promise;
+    }
+
+    serviceInstance.serverBaseUri = secrets.web.server_base_uri;
+
+    return serviceInstance;
   }
 };

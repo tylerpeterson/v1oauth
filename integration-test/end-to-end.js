@@ -10,6 +10,7 @@ var expect = require('chai').expect;
 var Browser = require('zombie');
 var creds = require('../user_secrets');
 var Q = require('q');
+var request = require('superagent');
 
 var ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
 
@@ -127,8 +128,39 @@ describe('AuthApp', function () {
   }
 });
 
-describe('authService', function () {
-  it('should be exported as function v1oauth.authService', function () {
-    expect(v1oauth).to.respondTo('authService');
+describe('authService', function () {  
+  describe('instance', function () {
+    var authService;
+
+    beforeEach(function () {
+      authService = v1oauth.authService(secrets);
+    });
+
+    it('should generate a valid access token', function () {
+      this.timeout(15000);
+      var tokens = authService();
+      return tokens.then(function (tokens) {
+        var token = tokens.access_token;
+        var dfd = Q.defer();
+        request
+          .get(authService.serverBaseUri + '/query.v1')
+          .set('Authorization', 'Bearer ' + token)
+          .send({
+            from: "Member",
+            select: [ "Name", "Nickname" ],
+            page: { start: 0, size: 1}
+          })
+          .end(function (res) {
+            if (res.ok) {
+              dfd.resolve(res.body);
+            } else {
+              dfd.reject(res.text);
+            }
+          }, function (err) {
+            dfd.reject(err);
+          });
+        return dfd.promise;
+      });
+    });
   });
 });
