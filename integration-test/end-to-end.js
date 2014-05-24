@@ -1,7 +1,8 @@
 /*jslint node: true, expr:true*/
 
 var express = require('express');
-var AuthApp = require('../index').app;
+var v1oauth = require('../index');
+var AuthApp = v1oauth.app;
 var secrets = require('../client_secrets');
 var http = require('http');
 var debug = require('debug')('v1oauth');
@@ -124,4 +125,10 @@ describe('AuthApp', function () {
     expect(accessCookie).to.have.property('secure').that.equals(true, 'the access token cookie secure flag');
     accessToken = accessCookie.value;    
   }
+});
+
+describe('authService', function () {
+  it('should be exported as function v1oauth.authService', function () {
+    expect(v1oauth).to.respondTo('authService');
+  });
 });

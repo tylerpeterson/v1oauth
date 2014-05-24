@@ -176,5 +176,8 @@ AuthApp.prototype.restrict = function(req, res, next) {
 };
 
 module.exports = {
-  app: AuthApp
+  app: AuthApp, // For web apps to use
+  authService: function () { // for command line tools to use
+
+  }
 };
