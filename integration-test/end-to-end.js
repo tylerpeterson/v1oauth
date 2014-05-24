@@ -12,7 +12,7 @@ var Q = require('q');
 
 var ONE_DAY_MILLIS = 24 * 60 * 60 * 1000;
 
-describe('ManualAuthApp', function () {
+describe('AuthApp', function () {
   var auth;
   var app;
   var server;
