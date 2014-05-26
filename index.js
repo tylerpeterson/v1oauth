@@ -194,14 +194,18 @@ module.exports = {
         dfd.resolve(tokens);
       });
 
+      serviceInstance.browseTo(url);
+      
+      return dfd.promise;
+    }
+
+    serviceInstance.browseTo = function (url) {
       var browserProcess = exec('open ' + url, function (error, stdout, stderr) {
         if (error !== null) {
           debug('error', error);
         }
       });
-
-      return dfd.promise;
-    }
+    };
 
     serviceInstance.serverBaseUri = secrets.web.server_base_uri;
 
