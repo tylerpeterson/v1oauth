@@ -66,6 +66,9 @@ app.post('/index', auth.restrict, function (req, res) {
       });
   }
 });
+app.get('/', function(req, res) {
+  res.redirect('/index');
+});
 function renderResults(res, queryText, results) {
   res.send('<?html?><html><head><title>index page</title></head><body>' +
     '<form method="post">' +
