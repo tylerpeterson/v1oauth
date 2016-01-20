@@ -52,10 +52,10 @@ app.post('/index', auth.restrict, function (req, res) {
       .get(serverBaseUri + '/query.v1')
       .set('Authorization', 'Bearer ' + token)
       .send(queryObject)
-      .end(function (res) {
+      .end(function (err, res) {
         var results;
 
-        if (res.ok) {
+        if (err === null) {
           debug('successful request!');
           results = 'success!\n' + JSON.stringify(res.body, null, 2);
         } else {

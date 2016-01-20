@@ -46,12 +46,13 @@ describe('AuthApp', function () {
   });
 
   it('should issue a request', function () {
-    this.timeout(5000);
+    this.timeout(15000);
 
     var url = auth.url();
     var tokensDfd = Q.defer();
 
     auth.on('refreshToken', function (tokens) {
+      debug('catching refreshToken from auth emitter. Resolving tokens dfd.');
       tokensDfd.resolve(tokens);
     });
 
@@ -60,6 +61,7 @@ describe('AuthApp', function () {
     return Q.all([
       logInFlow(url),
       tokensDfd.promise.then(function (tokens) {
+        debug('validating returned tokens.', tokens);
         expect(tokens).to.have.property('access_token').that.is.a('string', 'the emitted access token');
         expect(tokens).to.have.property('refresh_token').that.is.a('string', 'the emitted refresh token');
         expect(tokens).to.have.property('expires_in').that.equals(600, 'the emitted max age');
@@ -94,6 +96,7 @@ describe('AuthApp', function () {
   });
 
   function logInFlow(url) {
+    debug('logInFlow: START %s', url);
     return browser.visit(url).then(function () {
       debug('loaded login page');
       return browser
@@ -128,7 +131,7 @@ describe('AuthApp', function () {
   }
 });
 
-describe('authService', function () {  
+describe.skip('authService', function () {  
   describe('instance', function () {
     var authService;
 

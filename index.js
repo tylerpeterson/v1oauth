@@ -37,14 +37,14 @@ function AuthApp(secrets, options) {
   });
 
   app.get('/auth/versionone/callback', function (req, res) {
-    debug('serving /auth/versionone/callback with code %s', req.param('code'));
+    debug('serving /auth/versionone/callback with code %s', req.params.code);
     var pageRes = res;
     var tokenPromise;
-    var state = req.param('state');
+    var state = req.params.state;
     var returnUrl = decodeURIComponent(state);
-    if (req.param('code')) {
+    if (req.params.code) {
       debug('redeeming code for refreshToken');
-      tokenPromise = rootThis.hitTokenUri({code: req.param('code')});
+      tokenPromise = rootThis.hitTokenUri({code: req.params.code});
       tokenPromise.then(function fulfilled(tokensJson) {
         rootThis.handleTokensBody(tokensJson, pageRes);
 
@@ -104,13 +104,18 @@ AuthApp.prototype.hitTokenUri = function (params) {
       .send('refresh_token=' + params.refreshToken)
       .send('grant_type=refresh_token');
   } else {
+    debug('hitTokenUri: rejecting promise');
     dfd.reject('must call with code or refreshToken');
   }
+  debug('hitTokenUri: issuing request...');
   tokenRequest
-    .end(function (res) {
-      if (res.ok) {
+    .end(function (err, res) {
+      debug('hitTokenUri: request returning', !!err, !!res);
+      if (err === null) {
+        debug('hitTokenUri: resolving request.');
         dfd.resolve(res.body);
       } else {
+        debug('hitTokenUri: rejecting request.', res.text);
         dfd.reject("error getting access token", res.text);
       }
     });
@@ -160,6 +165,7 @@ AuthApp.prototype.restrict = function(req, res, next) {
     if (req.cookies.v1refreshToken) {
       debug('missing v1accessToken. Have v1refreshToken. Attempt refresh.');
       return self.hitTokenUri({refreshToken: req.cookies.v1refreshToken}).then(function (tokensJson) {
+        debug('Refresh attempt completed.');
         self.handleTokensBody(tokensJson, res);
         // TODO make sure tokens are available on THIS request and not just set cookies for next request.
         next();
@@ -179,7 +185,9 @@ AuthApp.prototype.restrict = function(req, res, next) {
 module.exports = {
   app: AuthApp, // For web apps to use
   authService: function (secrets) { // for command line tools to use
+    debug('authSerivce: START (for command line tools)');
     function serviceInstance() {
+      debug('authService::serviceInstance: START');
       var app = express();
       var auth = new AuthApp(secrets, {appBaseUrl: "http://localhost:8088", secureCookies: false});
       var dfd = Q.defer();
@@ -200,7 +208,9 @@ module.exports = {
     }
 
     serviceInstance.browseTo = function (url) {
+      debug('forking child process: open %s', url);
       var browserProcess = exec('open ' + url, function (error, stdout, stderr) {
+        debug('forked child process via open');
         if (error !== null) {
           debug('error', error);
         }
