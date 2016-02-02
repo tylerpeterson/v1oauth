@@ -203,7 +203,7 @@ module.exports = {
       });
 
       serviceInstance.browseTo(url);
-      
+
       return dfd.promise;
     }
 
