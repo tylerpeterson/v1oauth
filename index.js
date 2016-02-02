@@ -37,14 +37,14 @@ function AuthApp(secrets, options) {
   });
 
   app.get('/auth/versionone/callback', function (req, res) {
-    debug('serving /auth/versionone/callback with code %s', req.params.code);
+    debug('serving /auth/versionone/callback with code %s', req.query.code);
     var pageRes = res;
     var tokenPromise;
-    var state = req.params.state;
+    var state = req.query.state;
     var returnUrl = decodeURIComponent(state);
-    if (req.params.code) {
+    if (req.query.code) {
       debug('redeeming code for refreshToken');
-      tokenPromise = rootThis.hitTokenUri({code: req.params.code});
+      tokenPromise = rootThis.hitTokenUri({code: req.query.code});
       tokenPromise.then(function fulfilled(tokensJson) {
         rootThis.handleTokensBody(tokensJson, pageRes);
 
@@ -134,7 +134,7 @@ AuthApp.prototype.url = function () {
   return this._appBaseUrl + "/start"; // TODO allow config
 };
 
-AuthApp.prototype.redirectToV1Auth = function(req, res) {  
+AuthApp.prototype.redirectToV1Auth = function(req, res) {
   var state = '';
   var authUri;
 
@@ -203,7 +203,7 @@ module.exports = {
       });
 
       serviceInstance.browseTo(url);
-      
+
       return dfd.promise;
     }
 
